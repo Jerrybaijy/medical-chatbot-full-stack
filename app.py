@@ -9,17 +9,14 @@ from dotenv import load_dotenv
 from src.prompt import *
 import os
 
-
 app = Flask(__name__)
 
-# 加载环境变量
+# 设置 API
 load_dotenv()
 
-# 读取 API 密钥
 PINECONE_API_KEY = os.getenv("PINECONE_API_KEY")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# 设置环境变量（保证兼容性，确保所有依赖这种方式的库都能正常工作。）
 os.environ["PINECONE_API_KEY"] = PINECONE_API_KEY
 os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY
 
@@ -36,7 +33,7 @@ docsearch = PineconeVectorStore.from_existing_index(
 # 创建检索器
 retriever = docsearch.as_retriever(search_type="similarity", search_kwargs={"k": 3})
 
-# 初始化聊天模型
+# 创建 Agent
 chatModel = ChatGoogleGenerativeAI(
     model="gemini-2.5-flash", google_api_key=os.getenv("GEMINI_API_KEY")
 )
