@@ -13,10 +13,7 @@ build_image:
   variables:
     DOCKER_TLS_CERTDIR: "/certs"
   before_script:
-    - docker system prune -af || true
     - docker login -u $DOCKER_USER -p $DOCKER_PASSWORD
   script:
     - docker build -t $IMAGE_NAME:$IMAGE_TAG .
     - docker push $IMAGE_NAME:$IMAGE_TAG
-  after_script:
-    - docker system prune -af || true
