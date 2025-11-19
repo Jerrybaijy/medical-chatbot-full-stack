@@ -16,7 +16,7 @@
 ## 项目仓库
 
 - GitHub: https://github.com/Jerrybaijy/medical-chatbot-full-stack
-- Docker Hub: 
+- Docker Hub: https://hub.docker.com/repository/docker/jerrybaijy/medical-chatbot-full-stack
 
 ## RAG
 
