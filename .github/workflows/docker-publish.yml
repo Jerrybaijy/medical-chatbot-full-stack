@@ -1,0 +1,74 @@
+name: Build and Push Docker Image
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'        # 当你推 tag v1.0.0 时也会触发并使用 tag 名称
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Determine image tags
+        id: tags
+        run: |
+          # 镜像仓库（替换 medical-chatbot 为你的仓库名）
+          REPO=${{ secrets.DOCKERHUB_USERNAME }}/medical-chatbot-full-stack
+
+          # commit short sha
+          SHORT_SHA=$(echo "${GITHUB_SHA}" | cut -c1-7)
+
+          # 如果是 tag push，取 tag 名称；否则为空
+          if [[ "${GITHUB_REF_TYPE}" == "tag" || "${GITHUB_REF##*/}" == v* ]]; then
+            GIT_TAG=${GITHUB_REF##*/}
+          else
+            GIT_TAG=""
+          fi
+
+          # 总是包含 short sha；在 main 分支时包含 latest；如果有 git tag 则包含该 tag
+          TAGS="${SHORT_SHA}"
+          if [[ "${GITHUB_REF##*/}" == "main" || "${GITHUB_REF_NAME}" == "main" || "${GITHUB_REF}" == "refs/heads/main" ]]; then
+            TAGS="${TAGS},latest"
+          fi
+          if [[ -n "${GIT_TAG}" ]]; then
+            TAGS="${TAGS},${GIT_TAG}"
+          fi
+
+          echo "repository=${REPO}" >> $GITHUB_OUTPUT
+          echo "tags=${TAGS}" >> $GITHUB_OUTPUT
+
+      - name: Build and push Docker image (multi-platform)
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64
+          tags: |
+            ${{ steps.tags.outputs.repository }}:${{ fromJson('["' + replace(steps.tags.outputs.tags, ',', '","') + '"]') }} 
+          # 上面 tags 的复杂写法是为了把逗号分隔的 tags 传入 action（action 接受多行 tags）
+
+      - name: Image info
+        run: |
+          echo "Pushed: ${{ steps.tags.outputs.repository }} with tags ${{ steps.tags.outputs.tags }}"
